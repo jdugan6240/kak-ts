@@ -25,10 +25,10 @@ class Spec:
         self.face = face
 
     def __str__(self):
-        return f"{self.start[0] + 1}.{self.start[1] + 1},{self.end[0] + 1}.{self.end[1] + 1}|{self.face}"
+        return f"{self.start[0] + 1}.{self.start[1] + 1},{self.end[0] + 1}.{self.end[1]}|{self.face}"
 
     def __repr__(self):
-        return f"{self.start[0] + 1}.{self.start[1] + 1},{self.end[0] + 1}.{self.end[1] + 1}|{self.face}"
+        return f"{self.start[0] + 1}.{self.start[1] + 1},{self.end[0] + 1}.{self.end[1]}|{self.face}"
 
 
 kak_connection = None  # The connection to the Kakoune session
