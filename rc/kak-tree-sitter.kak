@@ -55,6 +55,9 @@ define-command tree-sitter-enable-buffer %{
 define-command -hidden tree-sitter-buffer-ready %{
     hook -group tree-sitter buffer InsertIdle .* tree-sitter-refresh
     hook -group tree-sitter buffer NormalIdle .* tree-sitter-refresh
+    hook -group tree-sitter buffer BufReload .* tree-sitter-refresh
+
+    tree-sitter-refresh
 }
 
 
