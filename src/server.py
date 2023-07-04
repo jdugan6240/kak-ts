@@ -1,6 +1,6 @@
+import config
 from kakoune import KakConnection
 import logging
-import time
 from tree_sitter import Language, Parser
 
 
@@ -34,27 +34,19 @@ class Spec:
 kak_connection = None  # The connection to the Kakoune session
 current_session = None  # The current Kakoune session
 buffers = {}  # The set of buffers we're handling
-languages = {
-    "python": BufLanguage(
-        "python",
-        "/home/jdugan/.config/helix/runtime/grammars/python.so",
-        "/home/jdugan/.config/helix/runtime/queries/python/highlights.scm",
-    )
-}  # The set of languages we support
-faces = {
-    "attribute": "meta",
-    "comment": "comment",
-    "function": "function",
-    "keyword": "keyword",
-    "operator": "operator",
-    "string": "string",
-    "type": "type",
-    "type-builtin": "type",
-    "constructor": "value",
-    "constant": "value",
-    "constant-builtin": "value",
-    "punctuation": "operator"
-}
+languages = {}  # The configured languages
+faces = {}  # The configured faces
+
+
+def parse_config():
+    conf = config.load_config()
+    for lang in conf["languages"]:
+        name = lang["name"]
+        lib = lang["lib"]
+        queries = lang["queries"]
+        languages[name] = BufLanguage(name, lib, queries)
+    for face in conf["faces"]:
+        faces[face] = conf["faces"][face]
 
 
 def update_tree(buffer):
@@ -78,17 +70,33 @@ def highlight_buffer(cmd):
         captures = query.captures(buf.tree.root_node)
         # Loop over all captures
         specs = []
-        logging.debug(f"Captures: {captures}")
+        names = []
+        prev_line = -1
+        prev_char = -1
         for capture in captures:
             node = capture[0]
-            node_name = capture[1].split(".")[0]
-            if node_name in faces.keys():
-                face = faces[node_name]
-                start = node.start_point
-                end = node.end_point
-                specs.append(Spec(start, end, face))
+            # Keep trying until we get a result
+            node_name_raw = capture[1]
+            if node_name_raw not in names:
+                names.append(node_name_raw)
+            while True:
+                logging.debug(f"Trying {node_name_raw}")
+                if node_name_raw in faces.keys():
+                    face = faces[node_name_raw]
+                    start = node.start_point
+                    end = node.end_point
+                    # Sometimes, we can get repeat specs.
+                    # So, we just try to skip those we've already done.
+                    if start[1] < prev_char and start[0] <= prev_line:
+                        break
+                    prev_line = end[0]
+                    prev_char = end[1]
+                    specs.append(Spec(start, end, face))
+                    break
+                if "." not in node_name_raw:
+                    break
+                node_name_raw = ".".join(node_name_raw.split(".")[0:-1])
         # Now send specs to Kakoune
-        logging.debug(f"Specs: {specs}")
         specs_str = ""
         for spec in specs:
             specs_str += f"'{spec}' "
@@ -142,6 +150,8 @@ def start(session, buf, ft):
     kak_connection.send_cmd(
         f'set-option global tree_sitter_buf_fifo "{kak_connection.buf_fifo_path}"'
     )
+
+    parse_config()
 
     new_buffer({"name": buf, "lang": ft})
 
