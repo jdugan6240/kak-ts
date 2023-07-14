@@ -19,7 +19,7 @@ define-command -hidden tree-sitter-start %{
     nop %sh{
         if [ "$kak_opt_tree_sitter_running" = false ]; then
             # Start the kak-tree-sitter server
-            (eval "${kak_opt_tree_sitter_cmd} -b ${kak_bufname} -f ${kak_opt_filetype}") > /dev/null 2<&1 < /dev/null &
+            (eval "${kak_opt_tree_sitter_cmd} -b '${kak_bufname}' -f ${kak_opt_filetype}") > /dev/null 2<&1 < /dev/null &
         fi
     }
 
