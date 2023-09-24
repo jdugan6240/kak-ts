@@ -110,6 +110,7 @@ def parse_buffer(cmd):
         with open(kak_connection.buf_fifo_path, 'r') as fifo:
             buf.contents = fifo.read()
         update_tree(buf)
+        highlight_buffer(cmd)
 
 
 def new_buffer(cmd):
@@ -132,8 +133,6 @@ def handle_kak_command(cmd):
         new_buffer(cmd)
     elif cmd["cmd"] == "parse":
         parse_buffer(cmd)
-    elif cmd["cmd"] == "highlight":
-        highlight_buffer(cmd)
 
 
 def start(session, buf, ft):

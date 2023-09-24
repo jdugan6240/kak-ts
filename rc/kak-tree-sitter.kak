@@ -74,7 +74,6 @@ define-command tree-sitter-refresh %{
     evaluate-commands -no-hooks %sh{
         if [ "$kak_timestamp" != "$kak_opt_tree_sitter_timestamp" ]; then
             echo 'tree-sitter-parse-buffer'
-            echo 'tree-sitter-highlight-buffer'
             echo 'set-option buffer tree_sitter_timestamp %val{timestamp}'
         fi
     }
