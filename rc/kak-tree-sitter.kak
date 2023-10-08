@@ -79,7 +79,7 @@ define-command tree-sitter-refresh %{
     }
 }
 
-define-command tree-sitter-highlight-buffer %{
+define-command -hidden tree-sitter-highlight-buffer %{
     nop %sh{
         printf '{
         "cmd": "highlight",
@@ -88,7 +88,7 @@ define-command tree-sitter-highlight-buffer %{
     }
 }
 
-define-command tree-sitter-parse-buffer %{
+define-command -hidden tree-sitter-parse-buffer %{
     # First grab the buffer contents
     evaluate-commands -draft -no-hooks %{ execute-keys '%'; set-option buffer tree_sitter_draft %val{selection}}
     nop %sh{
@@ -102,7 +102,7 @@ define-command tree-sitter-parse-buffer %{
     }
 }
 
-define-command tree-sitter-new-buffer %{
+define-command -hidden tree-sitter-new-buffer %{
     # Let kak-tree-sitter know of the new buffer
     nop %sh{
         printf '{
