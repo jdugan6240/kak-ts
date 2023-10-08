@@ -85,6 +85,9 @@ def highlight_buffer(cmd):
                     face = faces[node_name_raw]
                     start = node.start_point
                     end = node.end_point
+                    # Ensure the node is valid for Kakoune.
+                    if start[1] < 1 or end[1] < 1:
+                        break
                     # Sometimes, we can get repeat specs.
                     # So, we just try to skip those we've already done.
                     if start[1] < prev_char and start[0] <= prev_line:
