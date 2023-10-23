@@ -1,14 +1,11 @@
 declare-option -hidden range-specs tree_sitter_ranges
-declare-option -hidden range-specs tree_sitter_ranges_spare
 
 declare-option -hidden bool tree_sitter_running false
 
-declare-option -hidden str tree_sitter_dir %sh{echo $(dirname $kak_source)/../src}
-declare-option -hidden str tree_sitter_cmd "python %opt{tree_sitter_dir}/main.py -s %val{session}"
+declare-option -hidden str tree_sitter_dir %sh{echo $(dirname $kak_source)/..}
+declare-option -hidden str tree_sitter_args ""
 declare-option -hidden str tree_sitter_req_fifo ""
 declare-option -hidden str tree_sitter_buf_fifo ""
-
-declare-option -hidden str tree_sitter_draft ""
 
 # timestamp to debounce buffer change hooks.
 declare-option -hidden str tree_sitter_timestamp
@@ -19,7 +16,9 @@ define-command -hidden tree-sitter-start %{
     nop %sh{
         if [ "$kak_opt_tree_sitter_running" = false ]; then
             # Start the kak-tree-sitter server
-            (eval "${kak_opt_tree_sitter_cmd} -b '${kak_bufname}' -f ${kak_opt_filetype}") > /dev/null 2<&1 < /dev/null &
+            # Using the venv python directly since it's faster than using poetry,
+            # and we need as quick a start time as possible
+            ($kak_opt_tree_sitter_dir/.venv/bin/python $kak_opt_tree_sitter_dir/src/main.py -s $kak_session -b "${kak_bufname}" -f ${kak_opt_filetype} ${kak_opt_tree_sitter_args}) > /dev/null 2<&1 < /dev/null &
         fi
     }
 
@@ -62,12 +61,13 @@ define-command -hidden tree-sitter-buffer-ready %{
 
 
 define-command -hidden tree-sitter-quit %{
-	# Stop the kak-tree-sitter server
-    nop %sh{
-        printf '{
-        "cmd": "stop"
-        }' > $kak_opt_tree_sitter_req_fifo
-    }
+    # Stop the kak-tree-sitter server
+    echo -to-file %opt{tree_sitter_req_fifo} -- "{""cmd"": ""stop""}"
+    # nop %sh{
+    #     printf '{
+    #         "cmd": "stop"
+    #     }' > $kak_opt_tree_sitter_req_fifo
+    # }
 }
 
 define-command tree-sitter-refresh %{
@@ -79,36 +79,15 @@ define-command tree-sitter-refresh %{
     }
 }
 
-define-command -hidden tree-sitter-highlight-buffer %{
-    nop %sh{
-        printf '{
-        "cmd": "highlight",
-        "buf": "%s"
-        }' "$kak_bufname" > $kak_opt_tree_sitter_req_fifo
-    }
-}
-
 define-command -hidden tree-sitter-parse-buffer %{
-    # First grab the buffer contents
-    evaluate-commands -draft -no-hooks %{ execute-keys '%'; set-option buffer tree_sitter_draft %val{selection}}
-    nop %sh{
-        # Send the file contents to the file serving as kak-tree-sitter's buffer input
-        printf "%s" "$kak_opt_tree_sitter_draft" > $kak_opt_tree_sitter_buf_fifo
-        # Send the parse request
-        printf '{
-        "cmd": "parse",
-        "buf": "%s"
-        }' "$kak_bufname" > $kak_opt_tree_sitter_req_fifo
-    }
+    # Write the contents of the buffer
+    write -force %opt{tree_sitter_buf_fifo}
+
+    # Issue the parse command
+    echo -to-file %opt{tree_sitter_req_fifo} -- "{""cmd"": ""parse"", ""buf"": ""%val{bufname}""}"
 }
 
 define-command -hidden tree-sitter-new-buffer %{
     # Let kak-tree-sitter know of the new buffer
-    nop %sh{
-        printf '{
-        "cmd": "new",
-        "name": "%s",
-        "lang": "%s"
-        }' "$kak_bufname" "$kak_opt_filetype" > $kak_opt_tree_sitter_req_fifo
-    }
+    echo -to-file %opt{tree_sitter_req_fifo} -- "{""cmd"": ""new"", ""name"": ""%val{bufname}"", ""lang"": ""%opt{filetype}""}"
 }
